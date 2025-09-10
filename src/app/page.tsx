@@ -1,103 +1,104 @@
-import Image from "next/image";
+'use client';
+
+import { useState } from 'react';
+import { WritingEditor } from '@/components/WritingEditor';
+import { MinimalControls } from '@/components/MinimalControls';
+import { WelcomePopup } from '@/components/WelcomePopup';
+import { SaveDialog } from '@/components/SaveDialog';
+import { SessionHistoryModal } from '@/components/SessionHistoryModal';
+import { useWritingSession, WritingSessionConfig } from '@/hooks/useWritingSession';
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+	const [sessionState, sessionActions] = useWritingSession();
+	const [showSaveDialog, setShowSaveDialog] = useState(false);
+	const [showHistoryModal, setShowHistoryModal] = useState(false);
+	const [userId] = useState<string | undefined>(undefined); // TODO: Get from auth
+	
+	const handleStart = (config: WritingSessionConfig) => {
+		sessionActions.startSession(config);
+	};
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
+	const handleEnd = () => {
+		sessionActions.endSession();
+		if (sessionState.content.trim() && sessionState.wordCount > 0) {
+			setShowSaveDialog(true);
+		}
+	};
+
+	const handleSave = () => {
+		if (sessionState.content.trim() && sessionState.wordCount > 0) {
+			setShowSaveDialog(true);
+		}
+	};
+
+	const handleContinueAsGuest = () => {
+		// Just continue - the popup will close
+	};
+
+	const handleSignInWithGoogle = () => {
+		// TODO: Implement Google sign-in
+		console.log('Sign in with Google');
+	};
+
+	return (
+		<div className='min-h-screen bg-white'>
+			<WelcomePopup onSignInWithGoogle={handleSignInWithGoogle} onContinueAsGuest={handleContinueAsGuest} />
+
+			{/* Header with Title and Controls */}
+			<header className='pt-4 px-4 flex justify-between items-center'>
+				<h1 className='text-xl font-light text-gray-900'>Never stop typing</h1>
+				<MinimalControls
+					isActive={sessionState.isActive}
+					difficulty={sessionState.difficulty}
+					sessionDuration={sessionState.sessionDuration}
+					topic={sessionState.topic}
+					wordCount={sessionState.wordCount}
+					duration={sessionState.duration}
+					onStart={handleStart}
+					onPause={sessionActions.pauseSession}
+					onEnd={handleEnd}
+					onReset={sessionActions.resetSession}
+					onSave={handleSave}
+					onShowHistory={() => setShowHistoryModal(true)}
+					canSave={sessionState.content.trim().length > 0 && sessionState.wordCount > 0}
+				/>
+			</header>
+
+			{/* Minimal Layout */}
+			<div className='h-screen flex flex-col pt-4'>
+				{/* Writing Area - Centered with max width */}
+				<div className='flex-1 flex justify-center items-start px-4 pt-8'>
+					<div className='w-full max-w-3xl'>
+						<WritingEditor 
+							content={sessionState.content}
+							isActive={sessionState.isActive}
+							onContentChange={sessionActions.updateContent}
+						/>
+					</div>
+				</div>
+			</div>
+
+			{/* Modals */}
+			<SaveDialog
+				content={sessionState.content}
+				wordCount={sessionState.wordCount}
+				duration={sessionState.duration}
+				difficulty={sessionState.difficulty}
+				topic={sessionState.topic}
+				isOpen={showSaveDialog}
+				onOpenChange={setShowSaveDialog}
+				userId={userId}
+			/>
+
+			<SessionHistoryModal
+				userId={userId}
+				isOpen={showHistoryModal}
+				onOpenChange={setShowHistoryModal}
+				onViewSession={(session) => {
+					// TODO: Implement view session
+					console.log('View session:', session);
+				}}
+			/>
+		</div>
+	);
 }
