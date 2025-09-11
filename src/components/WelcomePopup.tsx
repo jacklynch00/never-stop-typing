@@ -7,12 +7,14 @@ import { useLocalStorage } from '@/hooks/useLocalStorage';
 interface WelcomePopupProps {
 	onSignInWithGoogle?: () => void;
 	onContinueAsGuest: () => void;
+	forceShow?: boolean;
+	onClose?: () => void;
 }
 
-export function WelcomePopup({ onSignInWithGoogle, onContinueAsGuest }: WelcomePopupProps) {
+export function WelcomePopup({ onSignInWithGoogle, onContinueAsGuest, forceShow, onClose }: WelcomePopupProps) {
 	const [hasSeenWelcome, setHasSeenWelcome] = useLocalStorage('hasSeenWelcome', false);
 
-	if (hasSeenWelcome) return null;
+	if (hasSeenWelcome && !forceShow) return null;
 
 	const handleContinueAsGuest = () => {
 		setHasSeenWelcome(true);
@@ -24,8 +26,12 @@ export function WelcomePopup({ onSignInWithGoogle, onContinueAsGuest }: WelcomeP
 		onSignInWithGoogle?.();
 	};
 
+	const handleClose = () => {
+		onClose?.();
+	};
+
 	return (
-		<Dialog open={!hasSeenWelcome} onOpenChange={() => {}}>
+		<Dialog open={!hasSeenWelcome || forceShow} onOpenChange={handleClose}>
 			<DialogContent className='sm:max-w-md'>
 				<DialogHeader>
 					<DialogTitle className='text-2xl font-bold text-center'>Welcome to Raw Writing</DialogTitle>

@@ -36,6 +36,8 @@ export interface LocalWritingSession {
   wordCount: number;
   duration: number;
   topic?: string;
+  promptId?: string;
+  promptText?: string;
   difficulty: 'easy' | 'hard';
   timestamp: number;
   completed: boolean;

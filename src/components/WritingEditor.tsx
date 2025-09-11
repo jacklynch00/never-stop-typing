@@ -40,7 +40,7 @@ export function WritingEditor({ content, isActive, onContentChange, className, p
 				onChange={handleChange}
 				placeholder={placeholder}
 				className={cn(
-					'w-full h-full min-h-[80vh] resize-none border border-gray-200 shadow-sm focus-visible:ring-2 focus-visible:ring-gray-300 focus-visible:border-transparent text-xl leading-relaxed p-8 bg-white transition-all duration-300 placeholder:text-gray-400 rounded-lg',
+					'w-full h-full min-h-[70vh] sm:min-h-[80vh] resize-none border border-gray-200 shadow-sm focus-visible:ring-2 focus-visible:ring-gray-300 focus-visible:border-transparent text-lg sm:text-xl leading-relaxed p-4 sm:p-8 bg-white transition-all duration-300 placeholder:text-gray-400 rounded-lg',
 					className
 				)}
 				autoFocus

@@ -22,6 +22,8 @@ interface SaveDialogProps {
   duration: number;
   difficulty: 'easy' | 'hard';
   topic?: string;
+  promptId?: string;
+  promptText?: string;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   onSaveComplete?: () => void;
@@ -34,6 +36,8 @@ export function SaveDialog({
   duration,
   difficulty,
   topic,
+  promptId,
+  promptText,
   isOpen,
   onOpenChange,
   onSaveComplete,
@@ -72,6 +76,8 @@ export function SaveDialog({
           wordCount,
           duration,
           topic,
+          promptId,
+          promptText,
           difficulty,
           timestamp: Date.now(),
           completed: true,

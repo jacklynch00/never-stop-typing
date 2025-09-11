@@ -22,6 +22,8 @@ interface LocalWritingSessionData {
   wordCount: number;
   duration: number;
   topic?: string;
+  promptId?: string;
+  promptText?: string;
   difficulty: 'easy' | 'hard';
   timestamp: number;
   completed: boolean;
@@ -142,7 +144,7 @@ export function SessionHistoryModal({ userId, isOpen, onOpenChange }: SessionHis
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col">
+      <DialogContent className="max-w-4xl max-h-[80vh] w-[95vw] sm:w-full flex flex-col">
         <DialogHeader>
           <DialogTitle>Session History</DialogTitle>
         </DialogHeader>
@@ -157,9 +159,9 @@ export function SessionHistoryModal({ userId, isOpen, onOpenChange }: SessionHis
               {allSessions.map((session: WritingSessionData | LocalWritingSessionData) => (
                 <div
                   key={session.id}
-                  className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                  className="border rounded-lg p-3 sm:p-4 hover:bg-gray-50 transition-colors"
                 >
-                  <div className="flex justify-between items-start mb-2">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-2 gap-2 sm:gap-0">
                     <div className="flex-1">
                       <h3 className="font-medium">
                         {session.title || 'Untitled Session'}
@@ -168,7 +170,7 @@ export function SessionHistoryModal({ userId, isOpen, onOpenChange }: SessionHis
                         {new Date('createdAt' in session ? session.createdAt : session.timestamp).toLocaleDateString()}
                       </p>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-1 sm:gap-2">
                       <Button
                         size="sm"
                         variant="outline"
@@ -193,7 +195,7 @@ export function SessionHistoryModal({ userId, isOpen, onOpenChange }: SessionHis
                     </div>
                   </div>
                   
-                  <div className="flex gap-2 mb-2">
+                  <div className="flex gap-1 sm:gap-2 mb-2 flex-wrap">
                     <Badge variant="secondary">
                       {session.wordCount} words
                     </Badge>
@@ -209,10 +211,18 @@ export function SessionHistoryModal({ userId, isOpen, onOpenChange }: SessionHis
                       </Badge>
                     )}
                   </div>
+
+                  {('promptText' in session && session.promptText) && (
+                    <div className="mb-2">
+                      <p className="text-sm text-blue-600 bg-blue-50 p-2 rounded">
+                        💡 Prompt: "{session.promptText}"
+                      </p>
+                    </div>
+                  )}
                   
-                  <p className="text-sm text-gray-600 line-clamp-2">
-                    {session.content.substring(0, 150)}
-                    {session.content.length > 150 && '...'}
+                  <p className="text-sm text-gray-600 line-clamp-3">
+                    {session.content.split('\n').slice(0, 3).join('\n')}
+                    {session.content.split('\n').length > 3 && '...'}
                   </p>
                 </div>
               ))}

@@ -11,6 +11,8 @@ export interface WritingSessionState {
 	showWarning: boolean;
 	difficulty: DifficultyMode;
 	topic?: string;
+	promptId?: string; // ID of the writing prompt used
+	promptText?: string; // Text of the writing prompt used
 	sessionDuration: number; // Target duration in seconds
 	isTyping: boolean; // True when user is actively typing
 	isDeletionPending: boolean; // True when deletion countdown is active
@@ -27,6 +29,8 @@ export interface WritingSessionActions {
 export interface WritingSessionConfig {
 	difficulty: DifficultyMode;
 	topic?: string;
+	promptId?: string;
+	promptText?: string;
 	sessionDuration: number;
 	deletionConfig?: Partial<DeletionConfig>;
 }
@@ -155,6 +159,8 @@ export function useWritingSession() {
 				isActive: true,
 				difficulty: finalConfig.difficulty,
 				topic: finalConfig.topic,
+				promptId: finalConfig.promptId,
+				promptText: finalConfig.promptText,
 				sessionDuration: finalConfig.sessionDuration,
 				duration: 0,
 			}));
@@ -197,7 +203,7 @@ export function useWritingSession() {
 
 			// Auto-start if user begins typing and no session is active
 			if (!state.isActive && content.trim().length > 0 && state.content.trim().length === 0) {
-				setTimeout(() => startSession(), 0);
+				setTimeout(() => startSession({}), 0);
 			} else if (state.isActive) {
 				startDeletionCountdown();
 			}
