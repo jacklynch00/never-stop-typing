@@ -12,6 +12,8 @@ export interface WritingSessionState {
 	difficulty: DifficultyMode;
 	topic?: string;
 	sessionDuration: number; // Target duration in seconds
+	isTyping: boolean; // True when user is actively typing
+	isDeletionPending: boolean; // True when deletion countdown is active
 }
 
 export interface WritingSessionActions {
@@ -44,12 +46,20 @@ export function useWritingSession() {
 		showWarning: false,
 		difficulty: 'easy',
 		sessionDuration: 600,
+		isTyping: false,
+		isDeletionPending: false,
 	});
 
 	const sessionTimerRef = useRef<NodeJS.Timeout | null>(null);
 	const deletionTimerRef = useRef<NodeJS.Timeout | null>(null);
 	const deletionIntervalRef = useRef<NodeJS.Timeout | null>(null);
 	const deletionConfigRef = useRef<DeletionConfig>(DEFAULT_DELETION_CONFIG);
+	const sessionStartTimeRef = useRef<number>(0);
+	const pausedDurationRef = useRef<number>(0);
+	const lastPauseTimeRef = useRef<number>(0);
+	const timerWhenStoppedTypingRef = useRef<number>(0);
+	const lastTypingTimeRef = useRef<number>(0);
+	const timerWhenDeletionStartsRef = useRef<number>(0);
 
 	const clearAllTimers = useCallback(() => {
 		[deletionTimerRef, deletionIntervalRef, sessionTimerRef].forEach((ref) => {
@@ -74,13 +84,39 @@ export function useWritingSession() {
 			deletionIntervalRef.current = null;
 		}
 
-		// Stop any active deletion
-		setState((prev) => ({ ...prev, isDeleting: false }));
+		// User is actively typing, clear deletion states and resume timer
+		setState((prev) => {
+			// If we were paused (only during actual deletion), adjust the session timing
+			if (prev.isDeleting) {
+				const pausedTime = Date.now() - lastPauseTimeRef.current;
+				pausedDurationRef.current += pausedTime;
+				
+				// Adjust session start time so that timer continues from deletion start point
+				const now = Date.now();
+				const desiredElapsed = timerWhenDeletionStartsRef.current;
+				sessionStartTimeRef.current = now - (desiredElapsed * 1000) - pausedDurationRef.current;
+				
+				return { ...prev, isDeleting: false, isDeletionPending: false, isTyping: true };
+			}
+			return { ...prev, isDeleting: false, isDeletionPending: false, isTyping: true };
+		});
+
+		// Record when user is typing (this gets called every keystroke)
+		lastTypingTimeRef.current = Date.now();
 
 		// Start 5 second countdown
 		deletionTimerRef.current = setTimeout(() => {
-			// Start deleting words
-			setState((prev) => ({ ...prev, isDeleting: true }));
+			// Deletion countdown started - show warning
+			setState((prev) => ({ ...prev, isDeletionPending: true, isTyping: false }));
+			
+			// Start deleting words and pause timer - capture timer at THIS moment
+			setState((prev) => {
+				// Capture the current timer value right when deletion starts
+				const currentElapsed = Math.floor((Date.now() - sessionStartTimeRef.current - pausedDurationRef.current) / 1000);
+				timerWhenDeletionStartsRef.current = currentElapsed;
+				lastPauseTimeRef.current = Date.now();
+				return { ...prev, isDeleting: true, duration: currentElapsed };
+			});
 
 			deletionIntervalRef.current = setInterval(() => {
 				setState((prev) => {
@@ -101,7 +137,7 @@ export function useWritingSession() {
 	}, []);
 
 	const endSession = useCallback(() => {
-		setState((prev) => ({ ...prev, isActive: false, isDeleting: false }));
+		setState((prev) => ({ ...prev, isActive: false, isDeleting: false, isTyping: false, isDeletionPending: false }));
 		clearAllTimers();
 	}, [clearAllTimers]);
 
@@ -124,15 +160,24 @@ export function useWritingSession() {
 			}));
 
 			// Start session timer
-			const startTime = Date.now();
+			sessionStartTimeRef.current = Date.now();
+			pausedDurationRef.current = 0;
 			sessionTimerRef.current = setInterval(() => {
-				const elapsed = Math.floor((Date.now() - startTime) / 1000);
-				setState((prev) => ({ ...prev, duration: elapsed }));
-
-				// Auto-end session when time limit reached
-				if (elapsed >= finalConfig.sessionDuration) {
-					endSession();
-				}
+				setState((prev) => {
+					// If we're currently paused (only during actual deletion), don't update the timer
+					if (prev.isDeleting) {
+						return prev;
+					}
+					
+					const elapsed = Math.floor((Date.now() - sessionStartTimeRef.current - pausedDurationRef.current) / 1000);
+					
+					// Auto-end session when time limit reached
+					if (elapsed >= finalConfig.sessionDuration) {
+						setTimeout(() => endSession(), 0);
+					}
+					
+					return { ...prev, duration: elapsed };
+				});
 			}, 1000);
 
 			// Start deletion countdown
@@ -153,7 +198,7 @@ export function useWritingSession() {
 			// Auto-start if user begins typing and no session is active
 			if (!state.isActive && content.trim().length > 0 && state.content.trim().length === 0) {
 				setTimeout(() => startSession(), 0);
-			} else {
+			} else if (state.isActive) {
 				startDeletionCountdown();
 			}
 		},
@@ -161,7 +206,7 @@ export function useWritingSession() {
 	);
 
 	const pauseSession = useCallback(() => {
-		setState((prev) => ({ ...prev, isActive: false, isDeleting: false }));
+		setState((prev) => ({ ...prev, isActive: false, isDeleting: false, isTyping: false, isDeletionPending: false }));
 		clearAllTimers();
 	}, [clearAllTimers]);
 
@@ -175,8 +220,16 @@ export function useWritingSession() {
 			showWarning: false,
 			difficulty: 'easy',
 			sessionDuration: 600,
+			isTyping: false,
+			isDeletionPending: false,
 		});
 		clearAllTimers();
+		sessionStartTimeRef.current = 0;
+		pausedDurationRef.current = 0;
+		lastPauseTimeRef.current = 0;
+		timerWhenStoppedTypingRef.current = 0;
+		lastTypingTimeRef.current = 0;
+		timerWhenDeletionStartsRef.current = 0;
 	}, [clearAllTimers]);
 
 	// Cleanup on unmount

@@ -17,13 +17,15 @@ interface MinimalControlsProps {
 	topic?: string;
 	wordCount: number;
 	duration: number;
-	
+	isTyping: boolean;
+	isDeletionPending: boolean;
+
 	// Session actions
 	onStart: (config: { difficulty: DifficultyMode; sessionDuration: number; topic?: string }) => void;
 	onPause: () => void;
 	onEnd: () => void;
 	onReset: () => void;
-	
+
 	// Other actions
 	onSave: () => void;
 	onShowHistory: () => void;
@@ -48,13 +50,15 @@ const TOPIC_OPTIONS = [
 	{ value: 'free', label: 'Free Writing' },
 ];
 
-export function MinimalControls({ 
+export function MinimalControls({
 	isActive,
 	difficulty,
 	sessionDuration,
 	topic,
 	wordCount,
 	duration,
+	isTyping,
+	isDeletionPending,
 	onStart,
 	onPause,
 	onEnd,
@@ -79,14 +83,21 @@ export function MinimalControls({
 
 	const remainingTime = Math.max(0, sessionDuration - duration);
 
+	// Determine timer badge color based on state
+	const getTimerBadgeVariant = () => {
+		if (isDeletionPending) return 'destructive'; // Red when deletion is pending
+		if (isTyping) return 'success'; // Green when actively typing
+		return 'secondary'; // Default gray
+	};
+
 	return (
 		<div className='flex items-center gap-2'>
 			{isActive && (
 				<>
-					<Badge variant='secondary' className='text-sm'>
+					<Badge variant='default' className='text-sm'>
 						{wordCount} words
 					</Badge>
-					<Badge variant='secondary' className='text-sm'>
+					<Badge variant={getTimerBadgeVariant()} className='text-sm'>
 						{formatDuration(remainingTime)} left
 					</Badge>
 				</>
@@ -115,79 +126,79 @@ export function MinimalControls({
 							<MoreVertical className='w-4 h-4' />
 						</Button>
 					</PopoverTrigger>
-						<PopoverContent className='w-80' align='end'>
+					<PopoverContent className='w-80' align='end'>
+						<div className='space-y-4'>
+							<div className='space-y-2'>
+								<h4 className='font-medium leading-none'>Start Writing Session</h4>
+								<p className='text-sm text-muted-foreground'>Configure your session settings</p>
+							</div>
+
 							<div className='space-y-4'>
 								<div className='space-y-2'>
-									<h4 className='font-medium leading-none'>Start Writing Session</h4>
-									<p className='text-sm text-muted-foreground'>Configure your session settings</p>
+									<label className='text-sm font-medium'>Difficulty Mode</label>
+									<Select value={selectedDifficulty} onValueChange={(value: DifficultyMode) => setSelectedDifficulty(value)}>
+										<SelectTrigger>
+											<SelectValue />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value='easy'>Easy (Delete from end)</SelectItem>
+											<SelectItem value='hard'>Hard (Delete randomly)</SelectItem>
+										</SelectContent>
+									</Select>
 								</div>
 
-								<div className='space-y-4'>
-									<div className='space-y-2'>
-										<label className='text-sm font-medium'>Difficulty Mode</label>
-										<Select value={selectedDifficulty} onValueChange={(value: DifficultyMode) => setSelectedDifficulty(value)}>
-											<SelectTrigger>
-												<SelectValue />
-											</SelectTrigger>
-											<SelectContent>
-												<SelectItem value='easy'>Easy (Delete from end)</SelectItem>
-												<SelectItem value='hard'>Hard (Delete randomly)</SelectItem>
-											</SelectContent>
-										</Select>
-									</div>
-
-									<div className='space-y-2'>
-										<label className='text-sm font-medium'>Session Duration</label>
-										<Select value={selectedDuration.toString()} onValueChange={(value) => setSelectedDuration(Number(value))}>
-											<SelectTrigger>
-												<SelectValue />
-											</SelectTrigger>
-											<SelectContent>
-												{DURATION_OPTIONS.map((option) => (
-													<SelectItem key={option.value} value={option.value.toString()}>
-														{option.label}
-													</SelectItem>
-												))}
-											</SelectContent>
-										</Select>
-									</div>
-
-									<div className='space-y-2'>
-										<label className='text-sm font-medium'>Topic (Optional)</label>
-										<Select value={selectedTopic} onValueChange={setSelectedTopic}>
-											<SelectTrigger>
-												<SelectValue placeholder='Choose a topic...' />
-											</SelectTrigger>
-											<SelectContent>
-												<SelectItem value='none'>No specific topic</SelectItem>
-												{TOPIC_OPTIONS.map((option) => (
-													<SelectItem key={option.value} value={option.value}>
-														{option.label}
-													</SelectItem>
-												))}
-											</SelectContent>
-										</Select>
-									</div>
-
-									<div className='text-xs text-red-600 bg-red-50 p-2 rounded'>⚠️ Stop typing for 5 seconds and words will be deleted!</div>
-
-									<Button onClick={handleStart} className='w-full' size='sm'>
-										Start Writing
-									</Button>
+								<div className='space-y-2'>
+									<label className='text-sm font-medium'>Session Duration</label>
+									<Select value={selectedDuration.toString()} onValueChange={(value) => setSelectedDuration(Number(value))}>
+										<SelectTrigger>
+											<SelectValue />
+										</SelectTrigger>
+										<SelectContent>
+											{DURATION_OPTIONS.map((option) => (
+												<SelectItem key={option.value} value={option.value.toString()}>
+													{option.label}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
 								</div>
+
+								<div className='space-y-2'>
+									<label className='text-sm font-medium'>Topic (Optional)</label>
+									<Select value={selectedTopic} onValueChange={setSelectedTopic}>
+										<SelectTrigger>
+											<SelectValue placeholder='Choose a topic...' />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value='none'>No specific topic</SelectItem>
+											{TOPIC_OPTIONS.map((option) => (
+												<SelectItem key={option.value} value={option.value}>
+													{option.label}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+								</div>
+
+								<div className='text-xs text-red-600 bg-red-50 p-2 rounded'>⚠️ Stop typing for 5 seconds and words will be deleted!</div>
+
+								<Button onClick={handleStart} className='w-full' size='sm'>
+									Start Writing
+								</Button>
 							</div>
-						</PopoverContent>
-					</Popover>
-				) : (
-					<>
-						<Button onClick={onPause} variant='outline' size='sm' className='p-2'>
-							<Pause className='w-4 h-4' />
-						</Button>
-						<Button onClick={onEnd} variant='destructive' size='sm' className='p-2'>
-							<Square className='w-4 h-4' />
-						</Button>
-					</>
-				)}
+						</div>
+					</PopoverContent>
+				</Popover>
+			) : (
+				<>
+					<Button onClick={onPause} variant='outline' size='sm' className='p-2'>
+						<Pause className='w-4 h-4' />
+					</Button>
+					<Button onClick={onEnd} variant='destructive' size='sm' className='p-2'>
+						<Square className='w-4 h-4' />
+					</Button>
+				</>
+			)}
 		</div>
 	);
 }

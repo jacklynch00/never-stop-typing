@@ -54,6 +54,8 @@ export default function Home() {
 					topic={sessionState.topic}
 					wordCount={sessionState.wordCount}
 					duration={sessionState.duration}
+					isTyping={sessionState.isTyping}
+					isDeletionPending={sessionState.isDeletionPending}
 					onStart={handleStart}
 					onPause={sessionActions.pauseSession}
 					onEnd={handleEnd}
