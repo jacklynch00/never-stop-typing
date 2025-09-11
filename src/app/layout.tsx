@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-	title: 'Raw Writing - Never Stop Typing',
+	title: 'Never Stop Typing',
 	description: 'A writing practice tool that deletes text during periods of inactivity to encourage continuous writing flow.',
 };
 
