@@ -25,11 +25,6 @@ export default function Home() {
 		}
 	};
 
-	const handleSave = () => {
-		if (sessionState.content.trim() && sessionState.wordCount > 0) {
-			setShowSaveDialog(true);
-		}
-	};
 
 	const handleContinueAsGuest = () => {
 		// Just continue - the popup will close
@@ -57,12 +52,9 @@ export default function Home() {
 					isTyping={sessionState.isTyping}
 					isDeletionPending={sessionState.isDeletionPending}
 					onStart={handleStart}
-					onPause={sessionActions.pauseSession}
 					onEnd={handleEnd}
 					onReset={sessionActions.resetSession}
-					onSave={handleSave}
 					onShowHistory={() => setShowHistoryModal(true)}
-					canSave={sessionState.content.trim().length > 0 && sessionState.wordCount > 0}
 				/>
 			</header>
 
@@ -89,6 +81,7 @@ export default function Home() {
 				topic={sessionState.topic}
 				isOpen={showSaveDialog}
 				onOpenChange={setShowSaveDialog}
+				onSaveComplete={() => sessionActions.resetSession()}
 				userId={userId}
 			/>
 
@@ -96,10 +89,6 @@ export default function Home() {
 				userId={userId}
 				isOpen={showHistoryModal}
 				onOpenChange={setShowHistoryModal}
-				onViewSession={(session) => {
-					// TODO: Implement view session
-					console.log('View session:', session);
-				}}
 			/>
 		</div>
 	);

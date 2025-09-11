@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -8,13 +9,15 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Download, Eye } from 'lucide-react';
+import { Trash2, Download, Copy } from 'lucide-react';
 import { useWritingSessions, useDeleteSession, WritingSessionData } from '@/hooks/useWritingSessions';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { formatDuration } from '@/utils/wordCount';
+import { toast } from 'sonner';
 
 interface LocalWritingSessionData {
   id: string;
+  title?: string;
   content: string;
   wordCount: number;
   duration: number;
@@ -28,30 +31,64 @@ interface SessionHistoryModalProps {
   userId?: string;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  onViewSession?: (session: WritingSessionData | LocalWritingSessionData) => void;
 }
 
-export function SessionHistoryModal({ userId, isOpen, onOpenChange, onViewSession }: SessionHistoryModalProps) {
-  const [localData] = useLocalStorage('rawWritingData', {
+export function SessionHistoryModal({ userId, isOpen, onOpenChange }: SessionHistoryModalProps) {
+  const [localData, setLocalData] = useLocalStorage('rawWritingData', {
     sessions: [] as LocalWritingSessionData[],
     preferences: { defaultDifficulty: 'easy' as const, defaultDuration: 600 },
     hasSeenWelcome: false,
   });
+  
+  const [sessionToDelete, setSessionToDelete] = useState<string | null>(null);
+  const [freshLocalData, setFreshLocalData] = useState(localData);
+
+  // Refresh local data when modal opens
+  useEffect(() => {
+    if (isOpen && !userId) {
+      try {
+        const item = window.localStorage.getItem('rawWritingData');
+        if (item) {
+          const parsedData = JSON.parse(item);
+          setFreshLocalData(parsedData);
+        }
+      } catch (error) {
+        console.error('Error reading fresh localStorage:', error);
+      }
+    }
+  }, [isOpen, userId]);
 
   // Cloud sessions
   const { data: cloudSessions = [], isLoading, error } = useWritingSessions(userId);
   const deleteSessionMutation = useDeleteSession();
 
   // Combine cloud and local sessions
-  const allSessions = userId ? cloudSessions : localData.sessions;
+  const allSessions = userId ? cloudSessions : freshLocalData.sessions;
 
-  const handleDelete = async (sessionId: string) => {
+  const handleDeleteClick = (sessionId: string) => {
+    setSessionToDelete(sessionId);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!sessionToDelete) return;
+    
     if (userId) {
-      await deleteSessionMutation.mutateAsync(sessionId);
+      await deleteSessionMutation.mutateAsync(sessionToDelete);
     } else {
-      // Handle local deletion - would need to implement this
-      console.log('Local delete not implemented yet');
+      // Delete from local storage
+      const updatedData = {
+        ...freshLocalData,
+        sessions: freshLocalData.sessions.filter(session => session.id !== sessionToDelete)
+      };
+      setLocalData(updatedData);
+      setFreshLocalData(updatedData);
     }
+    
+    setSessionToDelete(null);
+  };
+
+  const handleDeleteCancel = () => {
+    setSessionToDelete(null);
   };
 
   const handleDownload = (session: WritingSessionData | LocalWritingSessionData) => {
@@ -65,6 +102,16 @@ export function SessionHistoryModal({ userId, isOpen, onOpenChange, onViewSessio
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
+  };
+
+  const handleCopy = async (session: WritingSessionData | LocalWritingSessionData) => {
+    try {
+      await navigator.clipboard.writeText(session.content);
+      toast.success('Content copied to clipboard!');
+    } catch (error) {
+      console.error('Failed to copy to clipboard:', error);
+      toast.error('Failed to copy to clipboard');
+    }
   };
 
   if (isLoading) {
@@ -115,7 +162,7 @@ export function SessionHistoryModal({ userId, isOpen, onOpenChange, onViewSessio
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex-1">
                       <h3 className="font-medium">
-                        {'title' in session ? session.title || 'Untitled Session' : 'Untitled Session'}
+                        {session.title || 'Untitled Session'}
                       </h3>
                       <p className="text-sm text-gray-600 mt-1">
                         {new Date('createdAt' in session ? session.createdAt : session.timestamp).toLocaleDateString()}
@@ -125,9 +172,9 @@ export function SessionHistoryModal({ userId, isOpen, onOpenChange, onViewSessio
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => onViewSession?.(session)}
+                        onClick={() => handleCopy(session)}
                       >
-                        <Eye className="w-4 h-4" />
+                        <Copy className="w-4 h-4" />
                       </Button>
                       <Button
                         size="sm"
@@ -139,7 +186,7 @@ export function SessionHistoryModal({ userId, isOpen, onOpenChange, onViewSessio
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleDelete(session.id)}
+                        onClick={() => handleDeleteClick(session.id)}
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -173,6 +220,28 @@ export function SessionHistoryModal({ userId, isOpen, onOpenChange, onViewSessio
           )}
         </div>
       </DialogContent>
+      
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!sessionToDelete} onOpenChange={() => setSessionToDelete(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete Session</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-gray-600">
+              Are you sure you want to delete this writing session? This action cannot be undone.
+            </p>
+          </div>
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={handleDeleteCancel}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteConfirm}>
+              Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }

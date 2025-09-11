@@ -31,6 +31,7 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
 
 export interface LocalWritingSession {
   id: string;
+  title?: string;
   content: string;
   wordCount: number;
   duration: number;

@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Save, Download, Copy } from 'lucide-react';
 import { useSaveSession } from '@/hooks/useWritingSessions';
 import { useLocalStorage, LocalWritingSession } from '@/hooks/useLocalStorage';
+import { toast } from 'sonner';
 
 interface SaveDialogProps {
   content: string;
@@ -23,6 +24,7 @@ interface SaveDialogProps {
   topic?: string;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
+  onSaveComplete?: () => void;
   userId?: string; // If user is signed in
 }
 
@@ -34,6 +36,7 @@ export function SaveDialog({
   topic,
   isOpen,
   onOpenChange,
+  onSaveComplete,
   userId,
 }: SaveDialogProps) {
   const [title, setTitle] = useState('');
@@ -64,6 +67,7 @@ export function SaveDialog({
         // Save to local storage
         const newSession: LocalWritingSession = {
           id: Date.now().toString(),
+          title: title || undefined,
           content,
           wordCount,
           duration,
@@ -80,6 +84,7 @@ export function SaveDialog({
       }
 
       onOpenChange(false);
+      onSaveComplete?.();
     } catch (error) {
       console.error('Failed to save session:', error);
     } finally {
@@ -103,8 +108,10 @@ export function SaveDialog({
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(content);
+      toast.success('Content copied to clipboard!');
     } catch (error) {
       console.error('Failed to copy to clipboard:', error);
+      toast.error('Failed to copy to clipboard');
     }
   };
 

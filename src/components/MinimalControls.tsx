@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { DifficultyMode } from '@/utils/textDeletion';
 import { formatDuration } from '@/utils/wordCount';
-import { MoreVertical, Pause, Square, RotateCcw, Save, History } from 'lucide-react';
+import { MoreVertical, Square, RotateCcw, History } from 'lucide-react';
 
 interface MinimalControlsProps {
 	// Session state
@@ -22,14 +22,11 @@ interface MinimalControlsProps {
 
 	// Session actions
 	onStart: (config: { difficulty: DifficultyMode; sessionDuration: number; topic?: string }) => void;
-	onPause: () => void;
 	onEnd: () => void;
 	onReset: () => void;
 
 	// Other actions
-	onSave: () => void;
 	onShowHistory: () => void;
-	canSave: boolean;
 }
 
 const DURATION_OPTIONS = [
@@ -60,12 +57,9 @@ export function MinimalControls({
 	isTyping,
 	isDeletionPending,
 	onStart,
-	onPause,
 	onEnd,
 	onReset,
-	onSave,
 	onShowHistory,
-	canSave,
 }: MinimalControlsProps) {
 	const [selectedDifficulty, setSelectedDifficulty] = useState<DifficultyMode>(difficulty);
 	const [selectedDuration, setSelectedDuration] = useState(sessionDuration);
@@ -103,10 +97,6 @@ export function MinimalControls({
 				</>
 			)}
 
-			{/* Save Button */}
-			<Button variant='outline' size='sm' onClick={onSave} disabled={!canSave} className='p-2'>
-				<Save className='w-4 h-4' />
-			</Button>
 
 			{/* History Button */}
 			<Button variant='outline' size='sm' onClick={onShowHistory} className='p-2'>
@@ -190,14 +180,9 @@ export function MinimalControls({
 					</PopoverContent>
 				</Popover>
 			) : (
-				<>
-					<Button onClick={onPause} variant='outline' size='sm' className='p-2'>
-						<Pause className='w-4 h-4' />
-					</Button>
-					<Button onClick={onEnd} variant='destructive' size='sm' className='p-2'>
-						<Square className='w-4 h-4' />
-					</Button>
-				</>
+				<Button onClick={onEnd} variant='destructive' size='sm' className='p-2'>
+					<Square className='w-4 h-4' />
+				</Button>
 			)}
 		</div>
 	);
